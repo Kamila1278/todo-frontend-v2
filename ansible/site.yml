@@ -1,0 +1,100 @@
+---
+- name: Configure vm1
+  hosts: web
+  become: true
+
+  tasks:
+    - name: Install Apache2
+      ansible.builtin.apt:
+        name: apache2
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Start and enable Apache2
+      ansible.builtin.service:
+        name: apache2
+        state: started
+        enabled: true
+
+    - name: Create TODO page
+      ansible.builtin.copy:
+        dest: /var/www/html/index.html
+        mode: '0644'
+        content: |
+          <!DOCTYPE html>
+          <html lang="kk">
+          <head>
+            <meta charset="UTF-8">
+            <title>TODO — 2-нұсқа</title>
+            <style>
+              body {
+                font-family: Arial;
+                background: #eef2ff;
+                padding: 50px;
+              }
+              main {
+                background: white;
+                padding: 30px;
+                max-width: 600px;
+                margin: auto;
+                border-radius: 15px;
+              }
+              h1 { color: #4338ca; }
+              li { padding: 10px; }
+            </style>
+          </head>
+          <body>
+            <main>
+              <h1>TODO — 2-нұсқа</h1>
+              <ul>
+                <li>Ansible баптау</li>
+                <li>React қосымшасын жасау</li>
+                <li>Kubernetes іске қосу</li>
+              </ul>
+            </main>
+          </body>
+          </html>
+
+    - name: Check Apache response
+      ansible.builtin.uri:
+        url: http://localhost
+        return_content: true
+        status_code: 200
+      register: response
+
+    - name: Verify status and TODO text
+      ansible.builtin.assert:
+        that:
+          - response.status == 200
+          - "'TODO' in response.content"
+        success_msg: "Apache TODO page works"
+
+- name: Configure vm2
+  hosts: users
+  become: true
+
+  tasks:
+    - name: Create devops2 user
+      ansible.builtin.user:
+        name: devops2
+        shell: /bin/bash
+        create_home: true
+        state: present
+
+    - name: Create info.txt from template
+      ansible.builtin.template:
+        src: templates/info.txt.j2
+        dest: /home/devops2/info.txt
+        owner: devops2
+        group: devops2
+        mode: '0644'
+
+    - name: Verify devops2 user
+      ansible.builtin.command: id devops2
+      register: user_result
+      changed_when: false
+
+    - name: Show user information
+      ansible.builtin.debug:
+        var: user_result.stdout

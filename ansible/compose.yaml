@@ -1,0 +1,29 @@
+services:
+  vm1:
+    build: .
+    image: ubuntu-ansible:v2
+    container_name: vm1
+    hostname: vm1
+    ports:
+      - "127.0.0.1:8085:80"
+
+  vm2:
+    build: .
+    image: ubuntu-ansible:v2
+    container_name: vm2
+    hostname: vm2
+
+  ansible:
+    build: .
+    image: ubuntu-ansible:v2
+    container_name: ansible-controller
+    hostname: ansible-controller
+    working_dir: /project
+    volumes:
+      - .:/project
+    environment:
+      ANSIBLE_HOST_KEY_CHECKING: "False"
+    command: ["sleep", "infinity"]
+    depends_on:
+      - vm1
+      - vm2
